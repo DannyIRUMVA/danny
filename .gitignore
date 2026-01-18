@@ -1,0 +1,22 @@
+# Ignore node modules in both backend and frontend
+api/node_modules/
+app/node_modules/
+
+# Ignore build output
+api/dist/
+app/dist/
+
+# Ignore environment files
+api/.env
+app/.env
+
+# Ignore logs
+*.log
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
