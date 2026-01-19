@@ -1,4 +1,6 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -80,13 +82,13 @@ import { SocketService } from '../services/socket.service';
 
           <!-- Profile Avatar & Dropdown -->
           <button class="avatar-btn" [matMenuTriggerFor]="userMenu">
-            <div class="avatar-circle">JD</div> <!-- Initials -->
+            <div class="avatar-circle">{{ (currentUser$ | async)?.initials || 'U' }}</div>
           </button>
 
           <mat-menu #userMenu="matMenu" xPosition="before" class="profile-menu">
             <div class="menu-header">
-              <span class="font-bold">John Doe</span>
-              <span class="text-xs text-slate-500">john.doe&#64;example.com</span>
+              <span class="font-bold">{{ (currentUser$ | async)?.displayName || 'Guest' }}</span>
+              <span class="text-xs text-slate-500">{{ (currentUser$ | async)?.email || '' }}</span>
             </div>
             <mat-divider></mat-divider>
             <button mat-menu-item>
@@ -336,6 +338,39 @@ export class DashboardComponent implements OnInit {
   notificationCount = signal<number>(3); // Mock notification count
   // Use an observable and the async pipe to avoid ExpressionChangedAfterItHasBeenCheckedError
   users$ = this.userService.list();
+
+  // Parse token to find current user id (if logged in) and expose a currentUser$ observable
+  tokenId: number | null = null;
+  currentUser$: Observable<{ id: number; email: string; displayName: string; initials: string } | null> = (() => {
+    let id: number | null = null;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      try {
+        const payload = token.split('.')[1];
+        const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+        const obj = JSON.parse(json);
+        id = obj?.id ?? null;
+      } catch (e) {
+        id = null;
+      }
+    }
+    this.tokenId = id;
+    return this.users$.pipe(
+      map((list: any[]) => {
+        if (!list || id == null) return null;
+        const u = list.find((it: any) => it.id === id) || null;
+        if (!u) return null;
+        const displayName = (u.name && u.name.trim().length) ? u.name : (u.email || '').split('@')[0];
+        const initials = (displayName || '')
+          .split(/[^A-Za-z0-9]+/)
+          .map((p: string) => (p ? p.charAt(0).toUpperCase() : ''))
+          .filter(Boolean)
+          .slice(0, 2)
+          .join('') || (u.email ? u.email.charAt(0).toUpperCase() : 'U');
+        return { id: u.id, email: u.email, displayName, initials };
+      })
+    );
+  })();
 
   filteredTasks = computed(() => {
     const filter = this.filterSignal();

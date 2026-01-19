@@ -58,12 +58,12 @@ const router = express.Router();
  *                   example: User created
  */
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
 
   await pool.query(
-    'INSERT INTO users (email, password) VALUES ($1,$2)',
-    [email, hash]
+    'INSERT INTO users (name, email, password) VALUES ($1,$2,$3)',
+    [name || null, email, hash]
   );
 
   res.json({ message: 'User created' });
@@ -115,7 +115,7 @@ router.post('/login', async (req, res) => {
   if (!valid) return res.sendStatus(401);
 
   const token = jwt.sign(
-    { id: rows[0].id },
+    { id: rows[0].id, name: rows[0].name, email: rows[0].email },
     process.env.JWT_SECRET
   );
 

@@ -104,18 +104,7 @@ router.get('/:id', auth, async (req, res) => {
  *       - Tasks
  *     security:
  *       - bearerAuth: []
- *     requestBody:[black@arch ~]$ curl -X POST http://localhost:3000/tasks \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiaWF0IjoxNzY4ODE2MTczfQ.zUmFD4QiYdM2Czt4H374uOixPj9WZTWHDlfNJtsXvj4" \
-     -d '{
-       "title": "Complete Dashboard UI",
-       "description": "Fix alignment issues in the task management view",
-       "assigned_to": 1,
-       "status": "pending",
-       "due_date": "2026-02-01"
-     }'
-curl: (52) Empty reply from server
-[black@arch ~]$ 
+ *     requestBody:
 
 
  *       required: true
@@ -135,12 +124,19 @@ curl: (52) Empty reply from server
  */
 router.post('/', auth, async (req, res) => {
   const { title, description, assigned_to, status, due_date } = req.body;
+  console.log('POST /tasks payload:', { title, description, assigned_to, status, due_date, user: req.user?.id });
+
+  // Normalize assigned_to: allow missing/null, otherwise coerce to integer
+  const assignedToParam = assigned_to == null ? null : Number(assigned_to);
+  if (assigned_to != null && !Number.isInteger(assignedToParam)) {
+    return res.status(400).json({ error: 'assigned_to must be an integer or null' });
+  }
 
   const { rows: ins } = await pool.query(
     `INSERT INTO tasks (title, description, assigned_to, status, due_date)
      VALUES ($1,$2,$3,$4,$5)
      RETURNING id`,
-    [title, description, assigned_to, status, due_date]
+    [title, description, assignedToParam, status, due_date]
   );
 
   const id = ins[0].id;
@@ -153,14 +149,20 @@ router.post('/', auth, async (req, res) => {
   );
 
   io.emit('task:update', rows[0]);
-  // Add an assignment row and notify user if assigned_to provided
-  if (rows[0].assigned_to) {
-    try {
-      await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [rows[0].id, rows[0].assigned_to]);
-      notifyUser(rows[0].assigned_to, { type: 'task:assigned', task: rows[0] });
-    } catch (e) {
-      // ignore
+  // Add an assignment row and notify user if assigned_to provided (guard against null/invalid IDs)
+  try {
+    const assignedTo = rows[0].assigned_to;
+    if (assignedTo != null) {
+      const uid = Number(assignedTo);
+      if (!Number.isInteger(uid)) {
+        console.warn('create task: assigned_to is not an integer, skipping assignment', assignedTo);
+      } else {
+        await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
+        notifyUser(uid, { type: 'task:assigned', task: rows[0] });
+      }
     }
+  } catch (e) {
+    console.error('Failed to add assignment for created task', e);
   }
   res.json(rows[0]);
 });
@@ -203,6 +205,7 @@ router.post('/', auth, async (req, res) => {
  */
 router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
+  console.log('PUT /tasks/:id payload:', { id, body: req.body, user: req.user?.id });
 
   // Allow partial updates for fields: title, description, assigned_to, status, due_date
   const allowed = ['title', 'description', 'assigned_to', 'status', 'due_date'];
@@ -228,13 +231,19 @@ router.put('/:id', auth, async (req, res) => {
 
   io.emit('task:update', rows[0]);
   // If assignment changed, ensure task_assignments row and notify
-  if (rows[0].assigned_to) {
-    try {
-      await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [rows[0].id, rows[0].assigned_to]);
-      notifyUser(rows[0].assigned_to, { type: 'task:assigned', task: rows[0] });
-    } catch (e) {
-      // ignore
+  try {
+    const assignedTo = rows[0].assigned_to;
+    if (assignedTo != null) {
+      const uid = Number(assignedTo);
+      if (!Number.isInteger(uid)) {
+        console.warn('update task: assigned_to is not an integer, skipping assignment', assignedTo);
+      } else {
+        await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
+        notifyUser(uid, { type: 'task:assigned', task: rows[0] });
+      }
     }
+  } catch (e) {
+    console.error('Failed to add assignment for updated task', e);
   }
   res.json(rows[0]);
 });
@@ -253,24 +262,34 @@ router.delete('/:id', auth, async (req, res) => {
 router.post('/:id/assign', auth, async (req, res) => {
   const { id } = req.params;
   const { user_id } = req.body;
+  console.log('POST /tasks/:id/assign payload:', { id, user_id, user: req.user?.id });
 
-  await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [id, user_id]);
-  // update tasks.assigned_to for convenience
-  await pool.query('UPDATE tasks SET assigned_to=$1 WHERE id=$2', [user_id, id]);
+  try {
+    // guard against null/invalid user_id
+    if (user_id == null) throw new Error('user_id is required');
+    const uid = Number(user_id);
+    if (!Number.isInteger(uid)) throw new Error('user_id must be an integer');
+    await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [id, uid]);
+    // update tasks.assigned_to for convenience
+    await pool.query('UPDATE tasks SET assigned_to=$1 WHERE id=$2', [uid, id]);
 
-  const { rows } = await pool.query(
-    `SELECT t.*, u.email AS assigned_to_email
-     FROM tasks t
-     LEFT JOIN users u ON t.assigned_to = u.id
-     WHERE t.id=$1`,
-    [id]
-  );
+    const { rows } = await pool.query(
+      `SELECT t.*, u.email AS assigned_to_email
+       FROM tasks t
+       LEFT JOIN users u ON t.assigned_to = u.id
+       WHERE t.id=$1`,
+      [id]
+    );
 
-  // notify user
-  notifyUser(user_id, { type: 'task:assigned', task: rows[0] });
+    // notify user
+    notifyUser(uid, { type: 'task:assigned', task: rows[0] });
 
-  io.emit('task:update', rows[0]);
-  res.json(rows[0]);
+    io.emit('task:update', rows[0]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Failed to assign task', err);
+    res.status(500).json({ error: 'Failed to assign task' });
+  }
 });
 
 export default router;
