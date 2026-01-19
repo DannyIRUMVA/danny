@@ -5,10 +5,12 @@ import { Server } from 'socket.io';
 
 import authRoutes from './routes/auth.routes.js';
 import taskRoutes from './routes/task.routes.js';
+import { swaggerDocs } from './swagger.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+swaggerDocs(app);
 
 app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
@@ -21,6 +23,11 @@ export const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-server.listen(3000, () => {
-  console.log('Backend running on port 3000');
-});
+const port = process.env.PORT || 3000;
+
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Backend running on port ${port}`);
+  });
+}
+

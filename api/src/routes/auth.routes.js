@@ -5,6 +5,58 @@ import { pool } from '../db.js';
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Auth
+ *     description: User authentication
+ * components:
+ *   schemas:
+ *     UserRegister:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         password:
+ *           type: string
+ *       required:
+ *         - email
+ *         - password
+ *     AuthResponse:
+ *       type: object
+ *       properties:
+ *         token:
+ *           type: string
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserRegister'
+ *     responses:
+ *       200:
+ *         description: User created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User created
+ */
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
@@ -17,6 +69,38 @@ router.post('/register', async (req, res) => {
   res.json({ message: 'User created' });
 });
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *             required:
+ *               - email
+ *               - password
+ *     responses:
+ *       200:
+ *         description: Auth token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
