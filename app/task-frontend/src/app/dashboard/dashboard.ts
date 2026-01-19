@@ -331,11 +331,11 @@ export class DashboardComponent implements OnInit {
   private socketService = inject(SocketService);
   private router = inject(Router);
 
-  // Signals
+  // Component state
   tasks = signal<Task[]>([]);
   isLoading = signal<boolean>(false);
   filterSignal = signal<string>('All');
-  notificationCount = signal<number>(3); // Mock notification count
+  notificationCount = signal<number>(3);
   // Use an observable and the async pipe to avoid ExpressionChangedAfterItHasBeenCheckedError
   users$ = this.userService.list();
 

@@ -4,7 +4,6 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 
-// Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,7 +18,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   standalone: true,
   imports: [
     CommonModule, 
-    ReactiveFormsModule, // Switched to Reactive Forms
+    ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -31,11 +30,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   ],
   template: `
     <div class="login-container">
-      <!-- decorative background shape -->
       <div class="bg-shape"></div>
 
       <mat-card class="login-card">
-        <!-- Loading Bar -->
+        
         @if (isLoading()) {
           <mat-progress-bar mode="indeterminate" class="absolute-loader"></mat-progress-bar>
         }
@@ -56,7 +54,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
         <div class="card-body">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
             
-            <!-- Email Field -->
+            
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Email Address</mat-label>
               <input matInput type="email" formControlName="email" placeholder="you@company.com">
@@ -69,7 +67,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
               }
             </mat-form-field>
 
-            <!-- Password Field -->
+            
             <mat-form-field appearance="outline" class="w-full">
               <mat-label>Password</mat-label>
               <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password">
@@ -82,13 +80,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
               }
             </mat-form-field>
 
-            <!-- Options Row -->
+            
             <div class="form-options">
               <mat-checkbox color="primary" formControlName="rememberMe">Remember me</mat-checkbox>
               <a class="forgot-link" href="#">Forgot password?</a>
             </div>
 
-            <!-- Global Error Message -->
+            
             @if (errorMessage()) {
               <div class="error-banner" role="alert">
                 <mat-icon>error_outline</mat-icon>
@@ -96,7 +94,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
               </div>
             }
 
-            <!-- Submit Button -->
+            
             <button mat-flat-button color="primary" class="submit-btn" type="submit" 
                     [disabled]="loginForm.invalid || isLoading()">
               @if (isLoading()) {
@@ -287,18 +285,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   `]
 })
 export class LoginComponent {
-  // Inject dependencies (New Angular pattern)
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
-  // Signals for UI state
   isLoading = signal(false);
   errorMessage = signal('');
   hidePassword = signal(true);
 
-  // Reactive Form Definition
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
@@ -311,7 +306,7 @@ export class LoginComponent {
 
   onSubmit() {
     if (this.loginForm.invalid) {
-      this.loginForm.markAllAsTouched(); // Triggers error messages
+      this.loginForm.markAllAsTouched();
       return;
     }
 
@@ -319,9 +314,8 @@ export class LoginComponent {
 
     this.isLoading.set(true);
     this.errorMessage.set('');
-    this.loginForm.disable(); // Prevent editing while loading
+    this.loginForm.disable();
 
-    // NOTE: In a real app, move this http call to an AuthService
     this.http.post<any>('http://localhost:3000/auth/login', { email, password })
       .subscribe({
         next: (res) => {
@@ -332,7 +326,6 @@ export class LoginComponent {
         error: (err) => {
           this.isLoading.set(false);
           this.loginForm.enable();
-          // Handle specific backend error messages if available
           const msg = err.error?.message || 'Invalid credentials. Please try again.';
           this.errorMessage.set(msg);
         },

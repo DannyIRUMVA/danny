@@ -4,7 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
-// Material
+// Material modules
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -76,7 +76,7 @@ export class RegisterComponent {
     this.isLoading.set(true);
     try {
       await this.http.post('http://localhost:3000/auth/register', { name, email, password }).toPromise();
-      // Auto-login
+      // Sign in after creating the account
       const res: any = await this.http.post('http://localhost:3000/auth/login', { email, password }).toPromise();
       localStorage.setItem('token', res.token);
       this.snackBar.open('Account created', 'Close', { duration: 2500 });
@@ -88,4 +88,3 @@ export class RegisterComponent {
     }
   }
 }
-

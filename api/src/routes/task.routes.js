@@ -50,7 +50,7 @@ const router = express.Router();
  *                 $ref: '#/components/schemas/Task'
  *       401:
  *         description: Unauthorized
- */
+*/
 router.get('/', auth, async (req, res) => {
   const mine = req.query.mine === 'true';
   if (mine) {
@@ -73,6 +73,24 @@ router.get('/', auth, async (req, res) => {
   res.json(rows);
 });
 
+/**
+ * @swagger
+ * /tasks/users/all:
+ *   get:
+ *     summary: Get all users (id and email)
+ *     tags:
+ *       - Tasks
+ *     responses:
+ *       200:
+ *         description: Array of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ */
+
 // Simple users endpoint for frontend dropdown (no auth for demo, but ideally protect)
 router.get('/users/all', async (req, res) => {
   const { rows } = await pool.query('SELECT id, email FROM users ORDER BY email');
@@ -94,6 +112,32 @@ router.get('/:id', auth, async (req, res) => {
   if (!rows.length) return res.sendStatus(404);
   res.json(rows[0]);
 });
+
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   get:
+ *     summary: Get a single task by id
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: The task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ *       404:
+ *         description: Task not found
+ */
 
 /**
  * @swagger
@@ -166,6 +210,30 @@ router.post('/', auth, async (req, res) => {
   }
   res.json(rows[0]);
 });
+
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Create a new task
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TaskCreate'
+ *     responses:
+ *       200:
+ *         description: Created task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ */
 
 /**
  * @swagger
@@ -249,6 +317,36 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 /**
+ * @swagger
+ * /tasks/{id}:
+ *   put:
+ *     summary: Update a task
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/TaskUpdate'
+ *     responses:
+ *       200:
+ *         description: Updated task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ */
+
+/**
  * Delete a task
  */
 router.delete('/:id', auth, async (req, res) => {
@@ -258,7 +356,56 @@ router.delete('/:id', auth, async (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   delete:
+ *     summary: Delete a task
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Deletion result
+ */
+
 // Assign a task to a user
+/**
+ * @swagger
+ * /tasks/{id}/assign:
+ *   post:
+ *     summary: Assign a task to a user
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssignRequest'
+ *     responses:
+ *       200:
+ *         description: Assigned task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ */
 router.post('/:id/assign', auth, async (req, res) => {
   const { id } = req.params;
   const { user_id } = req.body;
@@ -291,5 +438,35 @@ router.post('/:id/assign', auth, async (req, res) => {
     res.status(500).json({ error: 'Failed to assign task' });
   }
 });
+
+/**
+ * @swagger
+ * /tasks/{id}/assign:
+ *   post:
+ *     summary: Assign a task to a user
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssignRequest'
+ *     responses:
+ *       200:
+ *         description: Assigned task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Task'
+ */
 
 export default router;

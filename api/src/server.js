@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 
 import authRoutes from './routes/auth.routes.js';
 import taskRoutes from './routes/task.routes.js';
-import { swaggerDocs } from './swagger.js';
+import { swaggerDocs, specs } from './swagger.js';
 
 const app = express();
 app.use(cors());
@@ -15,6 +15,11 @@ swaggerDocs(app);
 
 app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
+
+// Also expose raw OpenAPI JSON at /api (ensure this route is present after routes are mounted)
+app.get('/api', (req, res) => {
+  res.json(specs);
+});
 
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
@@ -39,6 +44,7 @@ io.on('connection', (socket) => {
       connectedUsers.set(userId, set);
     } catch (err) {
       // ignore invalid token
+      
     }
   });
 
@@ -65,5 +71,20 @@ const port = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
   server.listen(port, '0.0.0.0', () => {
     console.log(`Backend running on port ${port}`);
+
+    // Log registered routes for debugging OpenAPI exposure
+    try {
+      const routeStack = app._router && app._router.stack ? app._router.stack : [];
+      const routes = [];
+      routeStack.forEach((r) => {
+        if (r.route && r.route.path) {
+          const methods = Object.keys(r.route.methods).join(',').toUpperCase();
+          routes.push(`${methods} ${r.route.path}`);
+        }
+      });
+      console.log('Registered routes:\n' + routes.join('\n'));
+    } catch (e) {
+      console.warn('Failed to enumerate routes', e);
+    }
   });
 }
