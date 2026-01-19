@@ -109,7 +109,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
           </form>
 
           <div class="card-footer">
-            <p>Don't have an account? <a href="#">Create account</a></p>
+            <p>Don't have an account? <a routerLink="/register">Create account</a></p>
           </div>
         </div>
       </mat-card>

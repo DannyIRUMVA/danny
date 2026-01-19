@@ -58,11 +58,11 @@ import { SocketService } from '../services/socket.service';
       <!-- 1. Top Navigation Bar -->
       <nav class="top-nav">
         <div class="nav-left">
-          <div class="logo-mark">
+            <div class="logo-mark">
             <mat-icon>check_box</mat-icon>
           </div>
           <div>
-            <h1>Task Master</h1>
+            <h1>Task Management</h1>
             <p class="subtitle">{{ pendingCount() }} tasks pending</p>
           </div>
         </div>
