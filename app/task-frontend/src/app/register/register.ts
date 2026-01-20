@@ -106,12 +106,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
             <!-- Submit Button -->
             <button mat-flat-button color="primary" class="submit-btn" type="submit" 
                     [disabled]="registerForm.invalid || isLoading()">
-              @if (isLoading()) {
+              <ng-container *ngIf="isLoading(); else notLoading">
                 <span>Creating account...</span>
-              } @else {
+              </ng-container>
+              <ng-template #notLoading>
                 <span>Sign Up</span>
                 <mat-icon iconPositionEnd>person_add</mat-icon>
-              }
+              </ng-template>
             </button>
           </form>
 
