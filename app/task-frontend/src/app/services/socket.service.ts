@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { Subject } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SocketService {
-  private socket: Socket | null = null;
+  // Use a loose type here to avoid conflicts with differing socket.io-client
+  // typings across environments; runtime usage is duck-typed.
+  private socket: any = null;
   private notificationSubject = new Subject<any>();
   notifications$ = this.notificationSubject.asObservable();
 
@@ -49,4 +51,3 @@ export class SocketService {
     this.socket?.emit(event, data);
   }
 }
-
