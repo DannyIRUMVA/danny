@@ -350,7 +350,8 @@ export class DashboardComponent implements OnInit {
   tasks = signal<Task[]>([]);
   isLoading = signal<boolean>(false);
   filterSignal = signal<string>('All');
-  notificationCount = signal<number>(3);
+  // Start with zero notifications by default
+  notificationCount = signal<number>(0);
   notifications: any[] = [];
   // Use an observable and the async pipe to avoid ExpressionChangedAfterItHasBeenCheckedError
   users$ = this.userService.list();
@@ -517,6 +518,9 @@ export class DashboardComponent implements OnInit {
   // --- New Feature: Logout ---
   logout() {
     localStorage.removeItem('token'); // Clear auth token
+    // clean up socket connection and notifications on logout
+    try { this.socketService.disconnect(); } catch (e) { /* ignore */ }
+    this.clearNotifications();
     this.showNotification('Logged out successfully');
     this.router.navigate(['/login']); // Navigate to login
   }
