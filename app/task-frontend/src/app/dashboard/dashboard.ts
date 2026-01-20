@@ -410,19 +410,28 @@ export class DashboardComponent implements OnInit {
     try {
       this.socketService.connect();
       this.socketService.notifications$.subscribe((payload: any) => {
-        const message = payload?.message || (payload?.task ? `Task assigned: ${payload.task.title}` : 'Notification');
-        // add to in-memory notifications list and update badge
-        this.notifications.unshift({
-          title: payload?.title || (payload?.task?.title),
+        // Only respond to explicit task assignment events
+        if (!payload || payload.type !== 'task:assigned' || !payload.task) return;
+
+        const task = payload.task;
+        const message = payload.message || `You were assigned: ${task.title}`;
+
+        // store a compact notification object
+        const note = {
+          id: `${task.id}-${Date.now()}`,
+          title: task.title,
           message,
-          task: payload?.task || null,
+          task,
+          assigned_by: payload.assigned_by ?? null,
+          assigned_by_name: payload.assigned_by_name ?? payload.assigned_by_email ?? null,
           created_at: new Date().toISOString()
-        });
+        };
+
+        this.notifications.unshift(note);
         this.notificationCount.update(c => c + 1);
         this.showNotification(message);
-        if (payload?.type && payload.type.startsWith('task')) {
-          this.load();
-        }
+        // reload tasks so the assigned_to shows up correctly
+        this.load();
       });
     } catch (e) {
       console.warn('Socket init failed', e);
