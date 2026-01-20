@@ -202,7 +202,7 @@ router.post('/', auth, async (req, res) => {
         console.warn('create task: assigned_to is not an integer, skipping assignment', assignedTo);
       } else {
         await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
-        notifyUser(uid, { type: 'task:assigned', task: rows[0] });
+        notifyUser(uid, { type: 'task:assigned', task: rows[0], message: `You were assigned task: ${rows[0].title}` });
       }
     }
   } catch (e) {
@@ -307,7 +307,7 @@ router.put('/:id', auth, async (req, res) => {
         console.warn('update task: assigned_to is not an integer, skipping assignment', assignedTo);
       } else {
         await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
-        notifyUser(uid, { type: 'task:assigned', task: rows[0] });
+        notifyUser(uid, { type: 'task:assigned', task: rows[0], message: `You were assigned task: ${rows[0].title}` });
       }
     }
   } catch (e) {
@@ -429,7 +429,8 @@ router.post('/:id/assign', auth, async (req, res) => {
     );
 
     // notify user
-    notifyUser(uid, { type: 'task:assigned', task: rows[0] });
+    // include a friendly message for frontend notifications
+    notifyUser(uid, { type: 'task:assigned', task: rows[0], message: `You were assigned task: ${rows[0].title}` });
 
     io.emit('task:update', rows[0]);
     res.json(rows[0]);

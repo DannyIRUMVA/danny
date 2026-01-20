@@ -74,11 +74,26 @@ import { SocketService } from '../services/socket.service';
           </button>
 
           <!-- Notifications -->
-          <button mat-icon-button class="notification-btn" matTooltip="Notifications"
+          <button mat-icon-button [matMenuTriggerFor]="notifMenu" class="notification-btn" matTooltip="Notifications"
                   [matBadge]="notificationCount()" matBadgeColor="warn" [matBadgeHidden]="notificationCount() === 0"
                   aria-label="Notifications">
             <mat-icon aria-hidden="false">notifications_none</mat-icon>
           </button>
+          <mat-menu #notifMenu="matMenu">
+            <ng-container *ngIf="notifications.length; else noNotifs">
+              <button mat-menu-item *ngFor="let n of notifications">
+                <div class="notif-item">
+                  <div class="notif-title">{{ n.title || (n.task?.title) || 'Notification' }}</div>
+                  <div class="notif-meta">{{ n.message || (n.task?.assigned_to_email) || '' }}</div>
+                </div>
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="clearNotifications()">Clear notifications</button>
+            </ng-container>
+            <ng-template #noNotifs>
+              <div class="empty-notif">No notifications</div>
+            </ng-template>
+          </mat-menu>
 
           <!-- Profile Avatar & Dropdown -->
           <button class="avatar-btn" [matMenuTriggerFor]="userMenu">
@@ -336,6 +351,7 @@ export class DashboardComponent implements OnInit {
   isLoading = signal<boolean>(false);
   filterSignal = signal<string>('All');
   notificationCount = signal<number>(3);
+  notifications: any[] = [];
   // Use an observable and the async pipe to avoid ExpressionChangedAfterItHasBeenCheckedError
   users$ = this.userService.list();
 
@@ -395,9 +411,15 @@ export class DashboardComponent implements OnInit {
       this.socketService.connect();
       this.socketService.notifications$.subscribe((payload: any) => {
         const message = payload?.message || (payload?.task ? `Task assigned: ${payload.task.title}` : 'Notification');
-        this.showNotification(message);
+        // add to in-memory notifications list and update badge
+        this.notifications.unshift({
+          title: payload?.title || (payload?.task?.title),
+          message,
+          task: payload?.task || null,
+          created_at: new Date().toISOString()
+        });
         this.notificationCount.update(c => c + 1);
-        // reload tasks on task-related notifications
+        this.showNotification(message);
         if (payload?.type && payload.type.startsWith('task')) {
           this.load();
         }
@@ -405,6 +427,11 @@ export class DashboardComponent implements OnInit {
     } catch (e) {
       console.warn('Socket init failed', e);
     }
+  }
+
+  clearNotifications() {
+    this.notifications = [];
+    this.notificationCount.set(0);
   }
 
   load() {
