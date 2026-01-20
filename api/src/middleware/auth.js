@@ -1,9 +1,17 @@
 import jwt from 'jsonwebtoken';
 
 export const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const header = req.headers.authorization;
+  if (!header) return res.sendStatus(401);
+  const token = header.split(' ')[1];
   if (!token) return res.sendStatus(401);
 
-  req.user = jwt.verify(token, process.env.JWT_SECRET);
-  next();
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    // Invalid or malformed token -> unauthorized
+    console.warn('Auth failed:', err?.message || err);
+    return res.sendStatus(401);
+  }
 };

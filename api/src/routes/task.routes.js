@@ -201,7 +201,8 @@ router.post('/', auth, async (req, res) => {
       if (!Number.isInteger(uid)) {
         console.warn('create task: assigned_to is not an integer, skipping assignment', assignedTo);
       } else {
-        await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
+        // Use VALUES with explicit integer casts so Postgres can resolve parameter types
+        await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1::integer,$2::integer) ON CONFLICT DO NOTHING', [rows[0].id, uid]);
         notifyUser(uid, { 
           type: 'task:assigned', 
           task: rows[0], 
@@ -313,7 +314,8 @@ router.put('/:id', auth, async (req, res) => {
       if (!Number.isInteger(uid)) {
         console.warn('update task: assigned_to is not an integer, skipping assignment', assignedTo);
       } else {
-        await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [rows[0].id, uid]);
+        // Use VALUES with explicit integer casts so Postgres can resolve parameter types
+        await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1::integer,$2::integer) ON CONFLICT DO NOTHING', [rows[0].id, uid]);
         notifyUser(uid, { 
           type: 'task:assigned', 
           task: rows[0], 
@@ -430,7 +432,8 @@ router.post('/:id/assign', auth, async (req, res) => {
     if (user_id == null) throw new Error('user_id is required');
     const uid = Number(user_id);
     if (!Number.isInteger(uid)) throw new Error('user_id must be an integer');
-    await pool.query('INSERT INTO task_assignments (task_id, user_id) SELECT $1,$2 WHERE $2 IS NOT NULL ON CONFLICT DO NOTHING', [id, uid]);
+    // Use VALUES with explicit integer casts so Postgres can resolve parameter types
+    await pool.query('INSERT INTO task_assignments (task_id, user_id) VALUES ($1::integer,$2::integer) ON CONFLICT DO NOTHING', [id, uid]);
     // update tasks.assigned_to for convenience
     await pool.query('UPDATE tasks SET assigned_to=$1 WHERE id=$2', [uid, id]);
 
