@@ -1,5 +1,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import fs from 'fs';
+import path from 'path';
 
 const options = {
   definition: {
@@ -171,3 +173,12 @@ export const swaggerDocs = (app) => {
     res.json(specs);
   });
 };
+
+// Persist generated OpenAPI JSON to repo root so `openapi.json` stays in sync
+try {
+  const out = path.resolve(process.cwd(), 'openapi.json');
+  fs.writeFileSync(out, JSON.stringify(specs, null, 2), 'utf8');
+  console.log('Wrote OpenAPI JSON to', out);
+} catch (e) {
+  console.warn('Failed to write openapi.json', e);
+}

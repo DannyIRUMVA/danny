@@ -95,14 +95,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
             }
 
             
-            <button mat-flat-button color="primary" class="submit-btn" type="submit" 
+            <button mat-flat-button color="primary" class="submit-btn" type="submit"
                     [disabled]="loginForm.invalid || isLoading()">
-              @if (isLoading()) {
-                <span>Signing in...</span>
-              } @else {
-                <span>Sign In</span>
-                <mat-icon iconPositionEnd>arrow_forward</mat-icon>
-              }
+              <span *ngIf="isLoading()">Signing in...</span>
+              <span *ngIf="!isLoading()">Sign In</span>
+              <mat-icon *ngIf="!isLoading()" iconPositionEnd>arrow_forward</mat-icon>
             </button>
           </form>
 
